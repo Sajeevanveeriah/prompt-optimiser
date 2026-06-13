@@ -32,9 +32,9 @@ export interface GroqModel {
 
 export const GROQ_MODELS: GroqModel[] = [
   { id: 'llama-3.1-8b-instant',    name: 'Llama 3.1 8B',  description: 'Fast, efficient' },
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', description: 'Most capable' },
-  { id: 'mixtral-8x7b-32768',      name: 'Mixtral 8x7B',  description: 'Long context 32K' },
-  { id: 'gemma2-9b-it',            name: 'Gemma 2 9B',    description: 'Google open model' },
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', description: 'Most capable Llama' },
+  { id: 'openai/gpt-oss-20b',      name: 'GPT-OSS 20B',   description: 'Fast reasoning' },
+  { id: 'openai/gpt-oss-120b',     name: 'GPT-OSS 120B',  description: 'Highest quality' },
 ]
 
 export const DEFAULT_SYSTEM_PROMPT =

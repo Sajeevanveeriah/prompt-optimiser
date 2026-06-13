@@ -107,7 +107,7 @@ export default function ChatInterface() {
   ) => {
     const key = groqKey || localStorage.getItem('po-groq-key') || ''
     if (!key) {
-      throw new Error('No Groq API key. Click "Settings / API key" at the bottom of the sidebar and paste your gsk_... key.')
+      throw new Error('No Groq API key. Click Settings / API key in the sidebar and paste your gsk_... key.')
     }
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -120,7 +120,7 @@ export default function ChatInterface() {
         model: selectedModel,
         messages,
         stream: true,
-        max_tokens: 8192,
+        max_tokens: 2048,
         temperature: 0.7,
       }),
     })
