@@ -76,21 +76,32 @@ export default function ChatInterface() {
     selectedModel: string,
     onToken: (t: string) => void
   ) => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (groqKey) headers['x-groq-api-key'] = groqKey
-
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ messages, model: selectedModel }),
-    })
-
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error ?? `HTTP ${res.status}`)
+    const key = groqKey || localStorage.getItem('po-groq-key') || ''
+    if (!key) {
+      throw new Error('No Groq API key. Click "Settings / API key" at the bottom of the sidebar and paste your gsk_... key.')
     }
 
-    const reader = res.body!.getReader()
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: selectedModel,
+        messages,
+        stream: true,
+        max_tokens: 8192,
+        temperature: 0.7,
+      }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(err.error?.message ?? `Groq error: HTTP ${response.status}`)
+    }
+
+    const reader = response.body!.getReader()
     const dec = new TextDecoder()
 
     while (true) {
