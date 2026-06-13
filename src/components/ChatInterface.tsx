@@ -10,6 +10,36 @@ import { ProcessedFile } from '@/lib/fileProcessor'
 
 const STORAGE_KEY = 'po-conversations'
 
+const MAX_STORED_CHARS = 6000
+
+function persistConversations(conversations: Conversation[]) {
+  // Storage-safe copy: cap very long message bodies (e.g. extracted file text)
+  const slim = (list: Conversation[]) =>
+    list.map(c => ({
+      ...c,
+      messages: c.messages.map(m =>
+        m.content.length > MAX_STORED_CHARS
+          ? { ...m, content: m.content.slice(0, MAX_STORED_CHARS) + '\n\n[Content trimmed to fit local storage]' }
+          : m
+      ),
+    }))
+
+  let working = slim(conversations)
+  while (true) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(working))
+      return
+    } catch {
+      // Over quota: drop the oldest conversation (newest is at index 0) and retry.
+      if (working.length <= 1) {
+        try { localStorage.removeItem(STORAGE_KEY) } catch {}
+        return
+      }
+      working = working.slice(0, -1)
+    }
+  }
+}
+
 function uid(): string {
   return crypto.randomUUID()
 }
@@ -38,7 +68,7 @@ export default function ChatInterface() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations))
+    persistConversations(conversations)
   }, [conversations])
 
   const currentConv = conversations.find(c => c.id === currentId) ?? null
@@ -57,7 +87,6 @@ export default function ChatInterface() {
   const deleteConversation = useCallback((id: string) => {
     setConversations(prev => {
       const next = prev.filter(c => c.id !== id)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
       return next
     })
     setCurrentId(prev => {
