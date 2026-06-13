@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent } from 'react'
+import { useState, useRef, useCallback, KeyboardEvent, ChangeEvent, DragEvent } from 'react'
 import { ProcessedFile, processFile, fmtSize } from '@/lib/fileProcessor'
 import { GROQ_MODELS } from '@/lib/types'
 import { Paperclip, Send, Zap, X, Loader2, Image as ImageIcon } from 'lucide-react'
@@ -23,6 +23,7 @@ export default function InputArea({
   const [text, setText] = useState('')
   const [optimizing, setOptimizing] = useState(false)
   const [processingFiles, setProcessingFiles] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -67,8 +68,7 @@ export default function InputArea({
     }
   }, [text, optimizing, loading, onOptimize])
 
-  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
+  const ingestFiles = useCallback(async (files: File[]) => {
     if (!files.length) return
     setProcessingFiles(true)
     try {
@@ -76,8 +76,27 @@ export default function InputArea({
       onNewFiles(processed)
     } finally {
       setProcessingFiles(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }, [onNewFiles])
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (!loading && !optimizing && !processingFiles) setDragActive(true)
+  }
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setDragActive(false)
+  }
+  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setDragActive(false)
+    if (loading || optimizing || processingFiles) return
+    await ingestFiles(Array.from(e.dataTransfer.files ?? []))
+  }
+
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    await ingestFiles(Array.from(e.target.files ?? []))
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const busy = loading || optimizing || processingFiles
@@ -109,7 +128,21 @@ export default function InputArea({
           </div>
         )}
 
-        <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden focus-within:border-gray-500 transition-colors">
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`relative flex flex-col bg-gray-900 border rounded-2xl overflow-hidden transition-colors ${
+            dragActive
+              ? 'border-indigo-500 ring-2 ring-indigo-500/40'
+              : 'border-gray-700 focus-within:border-gray-500'
+          }`}
+        >
+          {dragActive && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-900/80 text-sm text-indigo-300 pointer-events-none rounded-2xl">
+              Drop files to attach
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             value={text}
